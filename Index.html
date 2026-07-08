@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Warung Madura: Ajal Pun Harus Antre - V2.7 Viral Perfect</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght=700;900&display=swap');
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; font-family: 'Nunito', sans-serif; }
+        body {
+            margin: 0; padding: 0; background-color: #0f111a; color: #f0f4f8; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; touch-action: manipulation;
+        }
+        .game-container {
+            width: 100%; max-width: 360px; display: flex; flex-direction: column; align-items: center;
+            background: #151828; box-shadow: 0 0 30px rgba(0,0,0,0.8); height: 100vh; max-height: 720px; position: relative;
+        }
+        .canvas-wrapper { position: relative; width: 100%; height: 60%; max-height: 480px; transition: height 0.2s ease; }
+        canvas { background-color: #1c1f30; width: 100%; height: 100%; display: block; border-bottom: 4px solid #2f3542; cursor: pointer; }
+        
+        .dashboard-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; background: rgba(15, 17, 26, 0.95);
+            z-index: 90; padding: 20px; gap: 12px;
+        }
+        .high-score-text { color: #fbc531; font-size: 15px; font-weight: 900; text-shadow: 2px 2px 0 rgba(0,0,0,0.8); margin-bottom: 10px; }
+        
+        .ui-panel {
+            width: 100%; height: 40%; background: #1e2235; padding: 15px 12px; display: flex; flex-direction: column;
+            gap: 8px; justify-content: flex-start;
+        }
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+        .btn {
+            border: none; color: white; padding: 14px 8px; font-size: 13px; font-weight: 900; border-radius: 12px;
+            cursor: pointer; text-transform: uppercase; transition: transform 0.1s, filter 0.1s; text-align: center;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5); box-shadow: 0 6px 0 rgba(0,0,0,0.3);
+        }
+        .btn:active { transform: translateY(6px); box-shadow: 0 0 0 rgba(0,0,0,0.3); filter: brightness(0.9); }
+        .btn-success { background: linear-gradient(180deg, #2ed573 0%, #21a155 100%); box-shadow: 0 6px 0 #18773e; }
+        .btn-warning { background: linear-gradient(180deg, #ffa502 0%, #cc8400 100%); box-shadow: 0 6px 0 #996300; }
+        .btn-info { background: linear-gradient(180deg, #1e90ff 0%, #156fc2 100%); box-shadow: 0 6px 0 #0f4c8a; }
+        .btn-danger { background: linear-gradient(180deg, #ff4757 0%, #cc3845 100%); box-shadow: 0 6px 0 #992933; }
+        .btn-disabled { background: #57606f !important; box-shadow: 0 6px 0 #2f3542 !important; color: #a4b0be; pointer-events: none; transform: translateY(6px); }
+        .full-btn { grid-column: span 2; width: 100%; }
+        .dash-btn { width: 90%; padding: 14px; font-size: 14px; border-radius: 12px; }
+        .audio-status { font-size: 10px; color: #a4b0be; text-align: center; margin-top: 5px; font-family: sans-serif; }
+        
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(5px); z-index: 100; justify-content: center; align-items: center; padding: 20px;
+        }
+        .modal-content {
+            background: #1e2235; border: 4px solid #ff4757; border-radius: 20px; padding: 20px; max-width: 320px;
+            width: 100%; text-align: center; box-shadow: 0 15px 40px rgba(0,0,0,0.9);
+        }
+        .modal-content h2 { color: #fbc531; margin-top: 0; font-size: 22px; text-shadow: 2px 2px 0 rgba(0,0,0,0.5); }
+        .modal-content p { font-size: 14px; line-height: 1.5; color: #f0f4f8; text-align: left; font-family: sans-serif; }
+        .modal-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div id="dashboardUI" class="dashboard-overlay" style="display: none;">
+            <div id="highScoreUI" class="high-score-text">🏆 REKOR: Hari ke-1 (0 Sukses)</div>
+            <button class="btn btn-success dash-btn" onclick="aksiMainBaru()">▶️ MAIN BARU</button>
+            <button id="btnLanjut" class="btn btn-info dash-btn" onclick="aksiLanjutGame()">🔄 LANJUTKAN</button>
+            <button class="btn dash-btn" style="background: linear-gradient(180deg, #9b59b6 0%, #8e44ad 100%); color: white; box-shadow: 0 6px 0 #5f2c82;" onclick="bukaModalToko()">🛒 TOKO UPGRADE</button>
+            <button class="btn btn-warning dash-btn" onclick="bukaModalSetting()">⚙️ PANDUAN & AUDIO</button>
+            <button class="btn dash-btn" style="background: linear-gradient(180deg, #e1b12c 0%, #fbc531 100%); color: #2f3640; box-shadow: 0 6px 0 #c23616;" onclick="bukaModalSaweria()">☕ TRAKTIR KOPI DEV</button>
+        </div>
+
+        <div class="canvas-wrapper" id="canvasWrapper">
+            <canvas id="gameCanvas" width="360" height="480"></canvas>
+            <button id="btnPauseTop" onclick="aksiPause()" style="position: absolute; top: 15px; left: 15px; width: 40px; height: 40px; border-radius: 50%; background: #ff4757; color: white; border: 3px solid #fff; font-size: 16px; cursor: pointer; display: none; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">⏸️</button>
+        </div>
+
+        <div class="ui-panel" id="bottomPanel" style="display: none;">
+            <div class="action-grid">
+                <button id="btnLayani" class="btn btn-success" onclick="aksiLayani()">[LAYANI]</button>
+                <button id="btnPeriksa" class="btn btn-info" onclick="aksiPeriksa()">[CEK UANG]</button>
+                <button id="btnPermen" class="btn btn-warning" onclick="aksiPermen()">[PERMEN]</button>
+                <button id="btnUsir" class="btn btn-danger" onclick="aksiUsir()">[USIR EMAK]</button>
+                <button id="btnBukuUtang" class="btn btn-info full-btn" onclick="aksiBukuUtang()">[BUKU UTANG]</button>
+            </div>
+            <div class="audio-status">💡 Sentuh langsung meja di game untuk mengecek uang/buku!</div>
+        </div>
+    </div>
+
+    <div id="modalToko" class="modal-overlay">
+        <div class="modal-content" style="border-color: #8e44ad;">
+            <h2 style="color: #9b59b6;">🛒 TOKO UPGRADE</h2>
+            <p style="text-align: center; color: #a4b0be; margin-bottom: 15px;">Uang Kas: <b id="koinTokoText" style="color: #fbc531;">Rp 0</b></p>
+            <div class="modal-grid" style="max-height: 340px; overflow-y: auto; padding-right: 4px;">
+                <button id="btnBeliKipas" class="btn btn-info full-btn" onclick="beliUpgrade('kipas')">🌀 KIPAS ANGIN</button>
+                <button id="btnBeliLampu" class="btn btn-warning full-btn" onclick="beliUpgrade('lampu')">💡 BOHLAM LED</button>
+                <button id="btnModalGacha" class="btn full-btn" style="background: linear-gradient(180deg, #f1c40f 0%, #f39c12 100%); box-shadow: 0 6px 0 #d35400;" onclick="aksiGacha()">🎰 GACHA SKIN MEJA<br><small id="gachaCostText" style="font-weight: normal;">Biaya: Rp 25.000</small></button>
+                <button class="btn btn-danger full-btn" onclick="tutupModalToko()">KEMBALI</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalSetting" class="modal-overlay">
+        <div class="modal-content">
+            <h2>⚙️ CARA BERMAIN</h2>
+            <p>
+                <b>1. Periksa Berkas:</b> Tap meja kasir deteksi Uang Palsu.<br>
+                <b>2. Token Listrik:</b> Tap meteran di atas jika alarm.<br>
+                <b>3. Emak Chaos:</b> SPAM tombol TAHAN HARGA!<br>
+                <b>4. Penagih Ghaib:</b> Ketuk pelari di belakang meja.
+            </p>
+            <div class="modal-grid">
+                <button class="btn btn-success full-btn btn-toggle-suara" onclick="aksiToggleSuara()">🔈 SUARA: ON</button>
+                <button class="btn btn-info full-btn" onclick="tutupModalSetting()">KEMBALI</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalSaweria" class="modal-overlay" onclick="tutupModalSaweria()">
+        <div class="modal-content" style="border-color: #fbc531;" onclick="event.stopPropagation()">
+            <h2>☕ Traktir Developer</h2>
+            <p style="text-align: center;">Dukung server Warung Madura tetap hidup!</p>
+            <a href="https://saweria.co/ayrushgames8" target="_blank" style="text-decoration: none; display: block; background: #fff; padding: 10px; border-radius: 10px; margin-bottom: 15px;">
+                <img src="asset/qr_saweria.png" alt="QR Saweria" style="width: 100%; max-width: 180px; display: block; margin: 0 auto;">
+                <div style="background: #2ed573; color: white; padding: 8px; margin-top: 10px; border-radius: 8px; font-weight: bold; text-align: center;">KLIK UNTUK DONASI VIA WEB</div>
+            </a>
+            <button class="btn btn-info full-btn" onclick="tutupModalSaweria()">KEMBALI</button>
+        </div>
+    </div>
+
+    <div id="modalBukuUtang" class="modal-overlay" onclick="tutupBukuUtang()"><div class="modal-content" onclick="event.stopPropagation()"><h2>📒 Buku Utang</h2><p id="bukuUtangText" style="text-align: center;">Memuat...</p><button class="btn btn-info full-btn" onclick="tutupBukuUtang()">TUTUP</button></div></div>
+    
+    <div id="modalPause" class="modal-overlay">
+        <div class="modal-content">
+            <h2>⏸️ Game Dipause</h2>
+            <div class="modal-grid">
+                <button class="btn btn-success" onclick="aksiLanjutkan()">▶️ LANJUTKAN</button>
+                <button class="btn btn-warning full-btn btn-toggle-suara" onclick="aksiToggleSuara()">🔈 SUARA: ON</button>
+                <button class="btn btn-danger" onclick="aksiKembaliMenu()">🚪 KE MENU UTAMA</button>
+            </div>
+        </div>
+    </div>
+<script>
+    const GameState = { SPLASH: 'SPLASH', MENU: 'MENU', PLAYING: 'PLAYING', PAUSED: 'PAUSED', BLACKOUT: 'BLACKOUT', GAMEOVER_BANKRUT: 'GAMEOVER_BANKRUT', GAMEOVER_DIBOIKOT: 'GAMEOVER_DIBOIKOT' };
+
+    let game = {
+        state: GameState.SPLASH, coins: 100000, reputation: 5, day: 1, score: 0,
+        currentCustomer: null, isTokenAlarmActive: false, tokenPower: 100, scannedStatusText: "BELUM DI-SCAN",
+        activeBGM: null, activeCustomerSFX: null, isMuted: false, currentMejaSkin: 'meja_warung', 
+        emakTapCount: 0, emakTimer: 0.0, emakCooldown: 0, audioUnlocked: false,
+        notifText: "", notifTimer: 0, notifColor: "#ff4757"
+    };
+
+    let upgrades = { kipas: 0, lampu: 0, gachaCount: 0 };
+    let highScore = { day: 1, score: 0 };
+    let floatingTexts = []; let ghostDebtor = { active: false, x: -60, y: 260, width: 50, height: 50, speed: 130 };
+    const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
+
+    const imgAssets = {
+        bocil_nangis: 'asset/bocil_nangis.png', bocil_normal: 'asset/bocil_normal.png', buku_utang: 'asset/buku_utang.png', emak_normal_ngamuk: 'asset/emak_normal_ngamuk.png',
+        game_over: 'asset/kalah.png', intel_bakso: 'asset/intel_bakso.png', intel_ojol: 'asset/intel_ojol.png', mas_mas_gabut: 'asset/mas_mas_gabut.png', 
+        meja_warung: 'asset/meja_warung.png', tetangga_live_chat: 'asset/tetangga_live_chat.png', token_listrik: 'asset/token_listrik.png', uang_palsu: 'asset/uang_palsu.png',
+        cover_menu: 'asset/cover_menu.png', qr_saweria: 'asset/qr_saweria.png', meja_kardus: 'asset/meja_kardus.png', meja_angkringan: 'asset/meja_angkringan.png', 
+        meja_rgb_sultan: 'asset/meja_rgb_sultan.png', penghutang_lari: 'asset/penghutang_lari.png',
+        icon_koin_emas: 'asset/icon_koin_emas.png', icon_bintang: 'asset/icon_bintang.png', icon_share_viral: 'asset/icon_share_viral.png',
+        icon_kipas_angin: 'asset/icon_kipas_angin.png', icon_lampu_neon: 'asset/icon_lampu_neon.png'
+    };
+
+    // FIXED AUDIO ASSETS - SINKRON 100% DENGAN LINUX/GITHUB SYSTEM
+    const audioAssets = {
+        BGM100: 'asset/audio/BGM100.mp3', 
+        BGM130: 'asset/audio/BGM130.mp3', 
+        BGM160: 'asset/audio/BGM160.mp3', 
+        bocil_nangis: 'asset/audio/bocil_nangis.mp3', 
+        dialog_intel: 'asset/audio/dialog_ht_intel.mp3',
+        sfx_tarik_uang: 'asset/audio/sfx_kertas_uang_ditarik.mp3', 
+        sfx_koin: 'asset/audio/sfx_koin_jatuh.mp3', 
+        sfx_gebrak: 'asset/audio/sfx_meja_digebrak.mp3', 
+        sfx_token_alarm: 'asset/audio/sfx_token_listrik.mp3',
+        suara_bocil: 'asset/audio/suara_bocil.mp3', 
+        suara_emak: 'asset/audio/suara_emak_emak_melengking.mp3', 
+        suara_gabut: 'asset/audio/suara_mas_gabut.mp3', 
+        sfx_gameover: 'asset/audio/suara_sorakan_warga_game_over.mp3',
+        suara_tetangga: 'asset/audio/suara_tetangga_memelas.mp3'
+    };
+
+    const images = {}; const audio = {};
+    for (let key in imgAssets) { images[key] = new Image(); images[key].src = imgAssets[key]; }
+    for (let key in audioAssets) { audio[key] = new Audio(); audio[key].src = audioAssets[key]; audio[key].loop = key.startsWith("BGM"); }
+    
+    function unlockAudio() {
+        if (game.audioUnlocked || game.isMuted) return;
+        let p1 = audio.BGM130.play(); if (p1 !== undefined) p1.then(() => audio.BGM130.pause()).catch(e=>{});
+        let p2 = audio.sfx_gameover.play(); if (p2 !== undefined) p2.then(() => { audio.sfx_gameover.pause(); audio.sfx_gameover.currentTime = 0; }).catch(e=>{});
+        game.audioUnlocked = true;
+    }
+
+    function changeBGM(targetAudio) {
+        if (!targetAudio) return;
+        if (game.activeBGM && game.activeBGM !== targetAudio) { try { game.activeBGM.pause(); game.activeBGM.currentTime = 0; } catch(e){} }
+        game.activeBGM = targetAudio;
+        if (game.isMuted) return; 
+        if (game.activeBGM) { game.activeBGM.currentTime = 0; let p = game.activeBGM.play(); if (p !== undefined) p.catch(e => {}); }
+    }
+    
+    function stopCustomerSFX() { if (game.activeCustomerSFX) { try { game.activeCustomerSFX.pause(); game.activeCustomerSFX.currentTime = 0; } catch(e){} game.activeCustomerSFX = null; } }
+    function playSFX(sfxKey) { if (!game.isMuted && audio[sfxKey]) { try { audio[sfxKey].currentTime = 0; audio[sfxKey].play(); } catch(e){} } }
+    function playCustomerSFX(sfxKey) { stopCustomerSFX(); if (!game.isMuted && audio[sfxKey]) { try { audio[sfxKey].currentTime = 0; audio[sfxKey].play(); game.activeCustomerSFX = audio[sfxKey]; } catch(e){} } }
+    function loadLocalData() {
+        upgrades.kipas = parseInt(localStorage.getItem('wm_upg_kipas_lv')) || 0;
+        upgrades.lampu = parseInt(localStorage.getItem('wm_upg_lampu_lv')) || 0;
+        upgrades.gachaCount = parseInt(localStorage.getItem('wm_gacha_count')) || 0;
+        highScore.day = parseInt(localStorage.getItem('wm_high_day')) || 1;
+        highScore.score = parseInt(localStorage.getItem('wm_high_score')) || 0;
+    }
+    loadLocalData();
+
+    function saveGame() {
+        localStorage.setItem('wm_coins', game.coins); localStorage.setItem('wm_day', game.day);
+        localStorage.setItem('wm_score', game.score); localStorage.setItem('wm_rep', game.reputation);
+        localStorage.setItem('wm_skin', game.currentMejaSkin);
+    }
+    
+    function updateHighScore() {
+        if (game.day > highScore.day || (game.day === highScore.day && game.score > highScore.score)) {
+            highScore.day = game.day; highScore.score = game.score;
+            localStorage.setItem('wm_high_day', highScore.day); localStorage.setItem('wm_high_score', highScore.score);
+        }
+        document.getElementById('highScoreUI').innerHTML = `🏆 REKOR: Hari ke-${highScore.day} (${highScore.score} Sukses)`;
+    }
+
+    function changeCoins(amount) { game.coins += amount; if (game.coins < 0) game.coins = 0; saveGame(); }
+    function addFloatingText(text, x, y, color = '#2ed573') { floatingTexts.push({ text: text, x: x, y: y, opacity: 1.0, color: color }); }
+    function triggerNotification(text, color = "#ff4757") { game.notifText = text; game.notifTimer = 3.5; game.notifColor = color; }
+    function masukKeDashboard() {
+        game.state = GameState.MENU; updateHighScore();
+        document.getElementById('bottomPanel').style.display = 'none';
+        document.getElementById('canvasWrapper').style.height = '100vh';
+        document.getElementById('canvasWrapper').style.maxHeight = '720px';
+        document.getElementById('dashboardUI').style.display = 'flex';
+        changeBGM(audio.BGM160); 
+        document.getElementById('btnLanjut').style.display = localStorage.getItem('wm_day') ? 'block' : 'none';
+    }
+
+    function startEngineBase() {
+        document.getElementById('dashboardUI').style.display = 'none'; 
+        document.getElementById('canvasWrapper').style.height = '60%';
+        document.getElementById('canvasWrapper').style.maxHeight = '480px';
+        document.getElementById('bottomPanel').style.display = 'block';
+        stopCustomerSFX(); game.state = GameState.PLAYING; game.isTokenAlarmActive = false; game.notifTimer = 0; game.emakCooldown = 0;
+        floatingTexts = []; ghostDebtor.active = false; game.tokenPower = 100;
+        changeBGM(audio.BGM100); 
+        updateTombolUI(); spawnCustomer();
+    }
+
+    function aksiMainBaru() {
+        localStorage.removeItem('wm_coins'); localStorage.removeItem('wm_day'); localStorage.removeItem('wm_score'); 
+        localStorage.removeItem('wm_rep'); localStorage.removeItem('wm_skin');
+        localStorage.removeItem('wm_upg_kipas_lv'); localStorage.removeItem('wm_upg_lampu_lv'); localStorage.removeItem('wm_gacha_count');
+        loadLocalData(); 
+        game.coins = 100000; game.reputation = 5; game.day = 1; game.score = 0; game.currentMejaSkin = 'meja_warung';
+        startEngineBase();
+    }
+    
+    function aksiLanjutGame() {
+        game.coins = parseInt(localStorage.getItem('wm_coins')) || 100000; game.day = parseInt(localStorage.getItem('wm_day')) || 1;
+        game.score = parseInt(localStorage.getItem('wm_score')) || 0; game.reputation = parseInt(localStorage.getItem('wm_rep')) || 5;
+        game.currentMejaSkin = localStorage.getItem('wm_skin') || 'meja_warung';
+        startEngineBase();
+    }
+
+    function hitungHargaUpgrade(jenis, lvSekarang) {
+        if (jenis === 'kipas') return 50000 + (lvSekarang * 25000);
+        if (jenis === 'lampu') return 75000 + (lvSekarang * 35000); return 9999999;
+    }
+    function hitungHargaGacha() { return 25000 + (upgrades.gachaCount * 15000); }
+
+    function bukaModalToko() {
+        let hargaKipas = hitungHargaUpgrade('kipas', upgrades.kipas); let hargaLampu = hitungHargaUpgrade('lampu', upgrades.lampu);
+        let hargaGacha = hitungHargaGacha(); document.getElementById('koinTokoText').innerHTML = `Rp ${game.coins.toLocaleString('id-ID')}`;
+        
+        let btnKipas = document.getElementById('btnBeliKipas');
+        if (upgrades.kipas >= 21) { btnKipas.innerHTML = "🌀 KIPAS ANGIN (MAXED LV 21)<br><small>Tempo Pelanggan Melambat (42%)</small>"; btnKipas.className = "btn btn-disabled full-btn"; } 
+        else { btnKipas.innerHTML = `🌀 KIPAS ANGIN (LV ${upgrades.kipas}/21) - Rp ${hargaKipas.toLocaleString('id-ID')}<br><small>Melambatkan Kesabaran Warga & Emak</small>`; btnKipas.className = "btn btn-info full-btn"; }
+
+        let btnLampu = document.getElementById('btnBeliLampu');
+        if (upgrades.lampu >= 21) { btnLampu.innerHTML = "💡 BOHLAM LED (MAXED LV 21)<br><small>Efisiensi Daya & Perlambatan Hantu MAX</small>"; btnLampu.className = "btn btn-disabled full-btn"; } 
+        else { btnLampu.innerHTML = `💡 BOHLAM LED (LV ${upgrades.lampu}/21) - Rp ${hargaLampu.toLocaleString('id-ID')}<br><small>Hemat Token & Memperlambat Penagih Ghaib</small>`; btnLampu.className = "btn btn-warning full-btn"; }
+        
+        document.getElementById('gachaCostText').innerHTML = `Biaya Saat Ini: Rp ${hargaGacha.toLocaleString('id-ID')}`;
+        document.getElementById('modalToko').style.display = 'flex';
+    }
+
+    function tutupModalToko() { document.getElementById('modalToko').style.display = 'none'; }
+    function bukaModalSetting() { document.getElementById('modalSetting').style.display = 'flex'; }
+    function tutupModalSetting() { document.getElementById('modalSetting').style.display = 'none'; }
+    function bukaModalSaweria() { document.getElementById('modalSaweria').style.display = 'flex'; }
+    function tutupModalSaweria() { document.getElementById('modalSaweria').style.display = 'none'; }
+    function tutupBukuUtang() { document.getElementById('modalBukuUtang').style.display = 'none'; }
+    
+    function aksiPause() { if (game.state !== GameState.PLAYING) return; game.state = GameState.PAUSED; stopCustomerSFX(); changeBGM(audio.BGM130); document.getElementById('modalPause').style.display = 'flex'; updateTombolUI(); }
+    function aksiLanjutkan() { if (game.state !== GameState.PAUSED) return; document.getElementById('modalPause').style.display = 'none'; game.state = GameState.PLAYING; changeBGM(audio.BGM100); updateTombolUI(); }
+    function aksiKembaliMenu() { document.getElementById('modalPause').style.display = 'none'; stopCustomerSFX(); masukKeDashboard(); }
+    
+    function aksiToggleSuara() {
+        game.isMuted = !game.isMuted; const btns = document.querySelectorAll('.btn-toggle-suara');
+        btns.forEach(btn => { if (game.isMuted) { btn.innerHTML = "🔇 SUARA: MUTED"; btn.className = "btn btn-danger full-btn btn-toggle-suara"; } else { btn.innerHTML = "🔈 SUARA: ON"; btn.className = "btn btn-success full-btn btn-toggle-suara"; } });
+        if (game.isMuted) { if (game.activeBGM) { game.activeBGM.pause(); game.activeBGM.currentTime = 0; } stopCustomerSFX(); } 
+        else { if (game.state === GameState.MENU) changeBGM(audio.BGM160); else if (game.state === GameState.PLAYING) changeBGM(audio.BGM100); else if (game.state === GameState.PAUSED) changeBGM(audio.BGM130); }
+    }
+
+    function beliUpgrade(jenis) {
+        let currentLv = upgrades[jenis]; if (currentLv >= 21) { triggerNotification("Level Upgrade Maksimal!", "#ffa502"); return; }
+        let hargaAsli = hitungHargaUpgrade(jenis, currentLv); if (game.coins < hargaAsli) { triggerNotification("Uang Kas warung tidak mencukupi!", "#ff4757"); return; }
+        changeCoins(-hargaAsli); upgrades[jenis]++; localStorage.setItem('wm_upg_' + jenis + '_lv', upgrades[jenis]);
+        playSFX('sfx_koin'); triggerNotification(`Upgrade ${jenis.toUpperCase()} Berhasil ke LV ${upgrades[jenis]}!`, "#2ed573"); bukaModalToko();
+    }
+
+    function aksiGacha() {
+        let hargaGacha = hitungHargaGacha(); if (game.coins < hargaGacha) { triggerNotification("Koin tidak cukup untuk gacha!", "#ff4757"); return; }
+        changeCoins(-hargaGacha); upgrades.gachaCount++; localStorage.setItem('wm_gacha_count', upgrades.gachaCount);
+        playSFX('sfx_koin'); let rand = Math.random();
+        if (rand < 0.70) { game.currentMejaSkin = 'meja_kardus'; triggerNotification("📦 Dapat: Meja Kardus!", "#a4b0be"); } 
+        else if (rand < 0.95) { game.currentMejaSkin = 'meja_angkringan'; triggerNotification("🪵 Dapat: Meja Angkringan!", "#ffa502"); } 
+        else { game.currentMejaSkin = 'meja_rgb_sultan'; triggerNotification("🌈 Dapat: MEJA SULTAN!", "#2ed573"); }
+        saveGame(); bukaModalToko();
+    }
+
+    function aksiShareWA() {
+        let copyRandom = [
+            `Gila! Warung Madura gue bertahan sampai Hari ke-${game.day} dengan ${game.score} pelanggan sukses sebelum digrebek warga! Ayo adu mekanik kasir bareng gue! 🛒🏃‍♂️💨`,
+            `Emak-emak nawar sadis, listrik mati, warung gue bangkrut di Hari ke-${game.day}! Sumpah ini game bikin senam jempol! Coba kalahin rekor gue: ${game.score} Sukses! 🤣📉`,
+            `Gue udah level dewa jualan di Warung Madura! Rekor gue: Bertahan sampai Hari ke-${game.day}! Lu berani coba ngadepin intel gabut sama penagih utang ghaib? 😎🔥`
+        ];
+        let pesan = copyRandom[Math.floor(Math.random() * copyRandom.length)];
+        window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(pesan), '_blank');
+    }
+
+    canvas.addEventListener('touchstart', handleGameTap, { passive: false }); canvas.addEventListener('click', handleGameTap);
+    function handleGameTap(e) {
+        if (e.type === 'touchstart') e.preventDefault(); unlockAudio();
+        let rect = canvas.getBoundingClientRect(); let clientX = e.touches ? e.touches[0].clientX : e.clientX; let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        let finalX = (clientX - rect.left) * (canvas.width / rect.width); let finalY = (clientY - rect.top) * (canvas.height / rect.height);
+
+        if (game.state === GameState.SPLASH) { masukKeDashboard(); return; }
+        
+        if (game.state === GameState.GAMEOVER_BANKRUT || game.state === GameState.GAMEOVER_DIBOIKOT) {
+            if (finalX >= 60 && finalX <= 300 && finalY >= 275 && finalY <= 320) { aksiMainBaru(); } 
+            else if (finalX >= 60 && finalX <= 300 && finalY >= 330 && finalY <= 380) { masukKeDashboard(); }
+            else if (finalX >= 60 && finalX <= 300 && finalY >= 395 && finalY <= 440) { aksiShareWA(); }
+            return;
+        }
+        if (game.state !== GameState.PLAYING) return; 
+
+        if (ghostDebtor.active && finalX >= ghostDebtor.x && finalX <= ghostDebtor.x + ghostDebtor.width && finalY >= ghostDebtor.y && finalY <= ghostDebtor.y + ghostDebtor.height) {
+            ghostDebtor.active = false; changeCoins(15000); playSFX('sfx_koin'); addFloatingText("+Rp 15.000", finalX, finalY, "#2ed573"); return;
+        }
+        if (finalX >= 290 && finalX <= 350 && finalY >= 15 && finalY <= 85) {
+            if (game.isTokenAlarmActive || game.tokenPower < 80) { game.tokenPower = 100; game.isTokenAlarmActive = false; changeCoins(-5000); triggerNotification("⚡ Token Diisi! Saldo -Rp5.000.", "#2ed573"); } return;
+        }
+        if (finalX >= 20 && finalX <= 340 && finalY >= 320 && finalY <= 460) { aksiPeriksa(); return; }
+    }
+    function aksiPeriksa() {
+        if (!game.currentCustomer || game.state !== GameState.PLAYING || game.currentCustomer.type === 'Emak Chaos') return;
+        game.currentCustomer.scanned = true; playSFX('sfx_tarik_uang');
+        if (game.currentCustomer.isMoneyFake) { game.scannedStatusText = "⚠️ PALSU (NARUTO)"; triggerNotification("Uang Mainan Terdeteksi!", "#ffa502"); } 
+        else if (game.currentCustomer.isDebtRequest) { game.scannedStatusText = "📒 BUKU UTANG VALID"; triggerNotification("Lembar Utang Sesuai!", "#1e90ff"); } 
+        else { game.scannedStatusText = "✅ RUPIAH ASLI"; triggerNotification("Uang Sah Bank Indonesia.", "#2ed573"); }
+    }
+
+    function spawnCustomer() {
+        if (game.state !== GameState.PLAYING) return; stopCustomerSFX(); game.scannedStatusText = "BELUM DI-SCAN";
+        let pool = (game.day < 3) ? ['Bocil', 'Mas Gabut'] : ['Bocil', 'Mas Gabut', 'Tetangga Live Chat', 'Intel Bakso', 'Intel Ojol'];
+        if (game.emakCooldown > 0) game.emakCooldown--; let selectedType = pool[Math.floor(Math.random() * pool.length)];
+        
+        if (game.emakCooldown <= 0 && (selectedType === 'Emak Chaos' || (game.day >= 3 && Math.random() < 0.20))) {
+            playCustomerSFX('suara_emak'); playSFX('sfx_gebrak'); game.emakTapCount = 0; 
+            game.emakTimer = 3.0 + (upgrades.kipas * 0.15); game.emakCooldown = 3;
+            game.currentCustomer = { type: 'Emak Chaos', patience: 100, maxPatience: 100, isMoneyFake: false, isDebtRequest: false, scanned: true, drainSpeed: 0.0 };
+            triggerNotification("👵 EVENT CHAOS: Spam [TAHAN HARGA]!", "#ff4757"); updateTombolUI(); return;
+        }
+
+        let calcPatience = Math.max(30, 100 - (game.day * 4)); 
+        let baseDrain = Math.min(0.20, 0.05 + (game.day * 0.015)); baseDrain *= (1.0 - (upgrades.kipas * 0.02)); 
+
+        game.currentCustomer = { type: selectedType, patience: calcPatience, maxPatience: calcPatience, isMoneyFake: (game.day >= 2 && Math.random() < 0.25), isDebtRequest: (selectedType === 'Mas Gabut' && Math.random() < 0.45), scanned: false, drainSpeed: baseDrain };
+        if(game.currentCustomer.isDebtRequest) game.currentCustomer.isMoneyFake = false;
+
+        if (selectedType.includes('Bocil')) playCustomerSFX('suara_bocil'); else if (selectedType === 'Mas Gabut') playCustomerSFX('suara_gabut'); else if (selectedType.includes('Intel')) playCustomerSFX('dialog_intel'); else if (selectedType.includes('Tetangga')) playCustomerSFX('suara_tetangga');
+        playSFX('sfx_tarik_uang'); updateTombolUI();
+    }
+
+    function checkDayProgression() { if(game.score >= game.day * 4){ game.day++; triggerNotification(`📅 HARI KE-${game.day}!`, "#ffa502"); } updateHighScore(); }
+
+    function updateTombolUI() {
+        const isBlock = (game.state !== GameState.PLAYING);
+        ['btnLayani','btnPeriksa','btnPermen','btnUsir','btnBukuUtang'].forEach(id => { document.getElementById(id).disabled = isBlock; if(isBlock) document.getElementById(id).classList.add('btn-disabled'); else document.getElementById(id).classList.remove('btn-disabled'); });
+        const btnLayani = document.getElementById('btnLayani');
+        if (game.currentCustomer && game.currentCustomer.type === 'Emak Chaos') { btnLayani.innerHTML = `[TAHAN HARGA (${game.emakTapCount}/5)]`; btnLayani.className = isBlock ? "btn btn-disabled full-btn" : "btn btn-danger full-btn"; } 
+        else { btnLayani.innerHTML = "[LAYANI]"; btnLayani.className = isBlock ? "btn btn-disabled" : "btn btn-success"; }
+        const btnPauseTop = document.getElementById('btnPauseTop'); if (btnPauseTop) btnPauseTop.style.display = (game.state === GameState.PLAYING) ? 'flex' : 'none';
+    }
+
+    function aksiLayani() {
+        if (game.state !== GameState.PLAYING || !game.currentCustomer) return; let cust = game.currentCustomer;
+        if (cust.type === 'Emak Chaos') {
+            game.emakTapCount++; playSFX('sfx_gebrak'); addFloatingText("💢 TAP!", 180, 200, "#ffa502");
+            if (game.emakTapCount >= 5) { changeCoins(25000); game.score++; playSFX('sfx_koin'); addFloatingText("+Rp 25.000", 180, 160, "#2ed573"); triggerNotification("🛡️ Harga bertahan dari Emak Chaos.", "#2ed573"); checkDayProgression(); saveGame(); spawnCustomer(); }
+            updateTombolUI(); return;
+        }
+        if (cust.isMoneyFake) {
+            if (!cust.scanned) { changeCoins(-45000); game.reputation -= 1; playSFX('sfx_gebrak'); triggerNotification("💸 Kena Uang Palsu!", "#ff4757"); } 
+            else { changeCoins(20000); game.score++; playSFX('sfx_koin'); triggerNotification("🛡️ Penolakan Uang Palsu Sukses.", "#2ed573"); }
+        } else if (cust.isDebtRequest) {
+            if (!cust.scanned) { game.reputation -= 1; triggerNotification("😡 Memberi bon tanpa Cek Buku!", "#ffa502"); } 
+            else { changeCoins(5000); game.score++; playSFX('sfx_koin'); triggerNotification("✅ Kas Bon Tercatat.", "#2ed573"); }
+        } else { changeCoins(25000); game.score++; playSFX('sfx_koin'); triggerNotification("💰 Transaksi Sukses!", "#2ed573"); }
+        checkDayProgression(); saveGame(); spawnCustomer();
+    }
+
+    function aksiPermen() {
+        if (game.state !== GameState.PLAYING || !game.currentCustomer || game.currentCustomer.type === 'Emak Chaos') return;
+        if (game.currentCustomer.type.includes('Bocil')) { game.reputation = Math.min(5, game.reputation + 1); changeCoins(10000); game.score++; playSFX('sfx_koin'); triggerNotification("👦 Bocil Senang Permen! Reputasi +1", "#2ed573"); } 
+        else { changeCoins(5000); game.score++; triggerNotification("😐 Dewasa Terima Permen Dengan Masam.", "#ffa502"); }
+        checkDayProgression(); saveGame(); spawnCustomer();
+    }
+    
+    function aksiUsir() {
+        if (game.state !== GameState.PLAYING || !game.currentCustomer) return;
+        if (game.currentCustomer.type === 'Emak Chaos') { game.reputation = Math.floor(game.reputation * 0.5); playSFX('sfx_gebrak'); triggerNotification("💥 Boikot! Usir Emak berakibat fatal!", "#ff4757"); } 
+        else { game.reputation -= 1; triggerNotification("⚠️ Mengusir Tanpa Alasan!", "#ffa502"); }
+        saveGame(); spawnCustomer();
+    }
+    
+    function aksiBukuUtang() { document.getElementById('bukuUtangText').innerHTML = (game.currentCustomer && game.currentCustomer.isDebtRequest) ? `⚠️ Pembeli <b>${game.currentCustomer.type}</b> Mau Kas Bon.` : "📒 Buku Utang Bersih."; document.getElementById('modalBukuUtang').style.display = 'flex'; }
+    let lastTime = Date.now(); let animationId = null; 
+    function gameLoop() { let now = Date.now(); let dt = (now - lastTime) / 1000; lastTime = now; if (dt > 0.05) dt = 0.016; if (game.state !== GameState.PAUSED) update(dt); render(); animationId = requestAnimationFrame(gameLoop); }
+
+    function triggerGameOver(reason) {
+        if (game.state === GameState.GAMEOVER_BANKRUT || game.state === GameState.GAMEOVER_DIBOIKOT) return;
+        game.state = reason; updateHighScore(); updateTombolUI(); stopCustomerSFX(); 
+        document.getElementById('canvasWrapper').style.height = '100vh';
+        document.getElementById('canvasWrapper').style.maxHeight = '720px';
+        document.getElementById('bottomPanel').style.display = 'none';
+        changeBGM(audio.BGM130); playSFX('sfx_gameover'); 
+    }
+
+    function update(dt) {
+        if (game.state !== GameState.PLAYING) return; if (game.notifTimer > 0) game.notifTimer -= dt;
+        if (game.currentCustomer && game.currentCustomer.type === 'Emak Chaos') { game.emakTimer -= dt; if (game.emakTimer <= 0) { changeCoins(5000); game.score++; triggerNotification("💸 Gagal! Emak berhasil nawar!", "#ff4757"); checkDayProgression(); saveGame(); spawnCustomer(); updateTombolUI(); } }
+        for (let i = floatingTexts.length - 1; i >= 0; i--) { floatingTexts[i].y -= dt * 50; floatingTexts[i].opacity -= dt * 0.7; if (floatingTexts[i].opacity <= 0) floatingTexts.splice(i, 1); }
+        if (!ghostDebtor.active && Math.random() < 0.003) { ghostDebtor.active = true; ghostDebtor.x = -60; ghostDebtor.speed = 130 * (1.0 - (upgrades.lampu * 0.02)); }
+        if (ghostDebtor.active) { ghostDebtor.x += dt * ghostDebtor.speed; if (ghostDebtor.x > canvas.width) ghostDebtor.active = false; }
+        if (game.coins <= 0) { game.coins = 0; triggerGameOver(GameState.GAMEOVER_BANKRUT); }
+        if (game.reputation <= 0) { game.reputation = 0; triggerGameOver(GameState.GAMEOVER_DIBOIKOT); }
+        if (game.currentCustomer && game.currentCustomer.type !== 'Emak Chaos') { game.currentCustomer.patience -= dt * game.currentCustomer.drainSpeed * 100; if (game.currentCustomer.patience <= 0) { game.reputation -= 1; if(game.currentCustomer.type.includes('Bocil')) playSFX('bocil_nangis'); triggerNotification("🏃 Pelanggan Kabur Marah!", "#ff4757"); saveGame(); spawnCustomer(); } }
+        let tokenDrain = 0.8 + (game.day * 0.2); tokenDrain *= (1.0 - (upgrades.lampu * 0.025)); game.tokenPower -= dt * tokenDrain;
+        if (game.tokenPower <= 25 && !game.isTokenAlarmActive) { game.isTokenAlarmActive = true; playSFX('sfx_token_alarm'); }
+        if (game.tokenPower <= 0) { game.tokenPower = 0; game.isTokenAlarmActive = false; game.state = GameState.BLACKOUT; stopCustomerSFX(); setTimeout(() => { if (game.state === GameState.BLACKOUT) { game.state = GameState.PLAYING; game.tokenPower = 50; } }, 3000); }
+    }
+
+    function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (game.state === GameState.SPLASH || game.state === GameState.MENU) {
+            ctx.fillStyle = '#0f111a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if (images.cover_menu && images.cover_menu.complete && images.cover_menu.naturalWidth !== 0) { let ratio = Math.max(canvas.width / images.cover_menu.width, canvas.height / images.cover_menu.height); ctx.drawImage(images.cover_menu, (canvas.width - (images.cover_menu.width * ratio)) / 2, (canvas.height - (images.cover_menu.height * ratio)) / 2, images.cover_menu.width * ratio, images.cover_menu.height * ratio); }
+            if (game.state === GameState.SPLASH) { let grad = ctx.createLinearGradient(0, canvas.height / 2, 0, canvas.height); grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(1, 'rgba(0,0,0,0.9)'); ctx.fillStyle = grad; ctx.fillRect(0, canvas.height / 2, canvas.width, canvas.height / 2); if (Math.floor(Date.now() / 500) % 2 === 0) { ctx.fillStyle = '#fbc531'; ctx.font = '900 16px Arial'; ctx.textAlign = 'center'; ctx.fillText("👇 KETUK LAYAR UNTUK MASUK 👇", canvas.width / 2, canvas.height - 40); } }
+            return;
+        }
+        if (game.state === GameState.BLACKOUT) { ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#ff4757'; ctx.font = '900 18px Arial'; ctx.textAlign = 'center'; ctx.fillText("🚨 MATI LAMPU TOTAL 🚨", canvas.width / 2, canvas.height / 2); return; }
+
+        if (images.cover_menu && images.cover_menu.complete && images.cover_menu.naturalWidth !== 0) { ctx.drawImage(images.cover_menu, 0, 0, canvas.width, canvas.height); ctx.fillStyle = 'rgba(21, 24, 40, 0.85)'; ctx.fillRect(0, 0, canvas.width, canvas.height); } 
+        else { ctx.fillStyle = '#222738'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+
+        if ((game.state === GameState.PLAYING || game.state === GameState.PAUSED) && game.currentCustomer) {
+            let cust = game.currentCustomer; let s = null; if (cust.type.includes('Bocil')) s = images.bocil_normal; else if (cust.type === 'Emak Chaos') s = images.emak_normal_ngamuk; else if (cust.type.includes('Intel Bakso')) s = images.intel_bakso; else if (cust.type.includes('Intel Ojol')) s = images.intel_ojol; else if (cust.type === 'Mas Gabut') s = images.mas_mas_gabut; else if (cust.type.includes('Tetangga')) s = images.tetangga_live_chat;
+            if (s && s.complete && s.naturalWidth !== 0) ctx.drawImage(s, canvas.width / 2 - 75, 130, 150, 180);
+            if (cust.type === 'Emak Chaos') { ctx.fillStyle = '#ff4757'; ctx.fillRect(60, 100, 240 * (game.emakTimer / (3.0 + (upgrades.kipas * 0.15))), 12); } 
+            else { ctx.fillStyle = (cust.patience / cust.maxPatience) < 0.3 ? '#ff4757' : '#2ed573'; ctx.fillRect(60, 100, 240 * (cust.patience / cust.maxPatience), 12); }
+        }
+
+        let mSkin = images[game.currentMejaSkin]; if (mSkin && mSkin.complete && mSkin.naturalWidth !== 0) ctx.drawImage(mSkin, 0, 310, canvas.width, 170); else { ctx.fillStyle = '#3d445c'; ctx.fillRect(0, 310, canvas.width, 170); }
+        if (ghostDebtor.active && images.penghutang_lari && images.penghutang_lari.complete && images.penghutang_lari.naturalWidth !== 0) ctx.drawImage(images.penghutang_lari, ghostDebtor.x, ghostDebtor.y, ghostDebtor.width, ghostDebtor.height);
+        if (images.token_listrik && images.token_listrik.complete && images.token_listrik.naturalWidth !== 0) ctx.drawImage(images.token_listrik, 300, 15, 45, 60);
+        if (game.isTokenAlarmActive && Math.floor(Date.now() / 250) % 2 === 0) { ctx.fillStyle = 'rgba(255, 71, 87, 0.6)'; ctx.fillRect(300, 15, 45, 60); }
+        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 10px Courier New'; ctx.textAlign = 'center'; ctx.fillText(`${Math.floor(game.tokenPower)}%`, 322, 90);
+
+        if ((game.state === GameState.PLAYING || game.state === GameState.PAUSED) && game.currentCustomer && game.currentCustomer.type !== 'Emak Chaos') {
+            let i = game.currentCustomer.isDebtRequest ? images.buku_utang : images.uang_palsu; if (i && i.complete && i.naturalWidth !== 0) ctx.drawImage(i, 140, 385, 80, 38);
+            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 12px Arial'; ctx.textAlign = 'center'; ctx.fillText(`Berkas: ${game.scannedStatusText}`, canvas.width / 2, 345);
+        }
+
+        if (images.icon_koin_emas && images.icon_koin_emas.complete && images.icon_koin_emas.naturalWidth !== 0) { ctx.drawImage(images.icon_koin_emas, 10, 15, 20, 20); ctx.fillStyle = '#ffa502'; ctx.font = '900 16px Arial'; ctx.textAlign = 'left'; ctx.fillText(`${game.coins.toLocaleString('id-ID')}`, 35, 31); } 
+        else { ctx.fillStyle = '#ffa502'; ctx.font = '900 16px Arial'; ctx.textAlign = 'left'; ctx.fillText(`Rp ${game.coins.toLocaleString('id-ID')}`, 15, 30); }
+        
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 12px Arial'; ctx.fillText(`📅 Hari: ${game.day} | 🎯 Sukses: ${game.score}`, 15, 55);
+        for(let i=0; i<5; i++) { if (i < game.reputation) { if (images.icon_bintang && images.icon_bintang.complete && images.icon_bintang.naturalWidth !== 0) { ctx.drawImage(images.icon_bintang, 15 + (i * 20), 65, 18, 18); } else { ctx.fillStyle = '#ffaf40'; ctx.fillText("★", 15 + (i * 15), 80); } } else { ctx.fillStyle = '#57606f'; ctx.fillText("★", 15 + (i * 20), 80); } }
+
+        if(upgrades.kipas > 0) { if(images.icon_kipas_angin && images.icon_kipas_angin.complete && images.icon_kipas_angin.naturalWidth !== 0) { ctx.drawImage(images.icon_kipas_angin, canvas.width - 70, 100, 20, 20); ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Arial'; ctx.fillText(`Lv.${upgrades.kipas}`, canvas.width - 45, 115); } }
+        if(upgrades.lampu > 0) { if(images.icon_lampu_neon && images.icon_lampu_neon.complete && images.icon_lampu_neon.naturalWidth !== 0) { ctx.drawImage(images.icon_lampu_neon, canvas.width - 70, 130, 20, 20); ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Arial'; ctx.fillText(`Lv.${upgrades.lampu}`, canvas.width - 45, 145); } }
+
+        floatingTexts.forEach(ft => { ctx.save(); ctx.globalAlpha = ft.opacity; ctx.fillStyle = ft.color; ctx.font = '900 20px Arial'; ctx.textAlign = 'center'; ctx.fillText(ft.text, ft.x, ft.y); ctx.restore(); });
+
+        if (game.notifTimer > 0) { ctx.fillStyle = 'rgba(15, 17, 26, 0.9)'; ctx.beginPath(); ctx.roundRect(10, 12, canvas.width - 20, 52, 8); ctx.fill(); ctx.strokeStyle = game.notifColor; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = '#ffffff'; ctx.font = 'bold 11px Arial'; ctx.textAlign = 'center'; ctx.fillText(game.notifText.substring(0, 45), canvas.width / 2, 32); if (game.notifText.length > 45) ctx.fillText(game.notifText.substring(45), canvas.width / 2, 48); }
+
+        if (game.state === GameState.GAMEOVER_BANKRUT || game.state === GameState.GAMEOVER_DIBOIKOT) {
+            if (images.game_over && images.game_over.complete && images.game_over.naturalWidth !== 0) { ctx.drawImage(images.game_over, 0, 0, canvas.width, canvas.height); } 
+            else { ctx.fillStyle = 'rgba(0, 0, 0, 0.95)'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#ff4757'; ctx.font = '900 24px Arial'; ctx.textAlign = 'center'; ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 20); }
+            
+            ctx.fillStyle = '#218c74'; ctx.beginPath(); ctx.roundRect(60, 395, 240, 45, 10); ctx.fill(); ctx.strokeStyle = '#f1f2f6'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.fillStyle = '#ffffff'; ctx.font = '900 15px Arial'; ctx.textAlign = 'center'; ctx.fillText("SHARE KE WHATSAPP", canvas.width / 2 + 15, 422);
+            if (images.icon_share_viral && images.icon_share_viral.complete && images.icon_share_viral.naturalWidth !== 0) { ctx.drawImage(images.icon_share_viral, 75, 398, 30, 30); } 
+            else { ctx.fillText("🚀", 90, 422); }
+        }
+    }
+    if (!animationId) { lastTime = Date.now(); gameLoop(); }
+</script>
+</body>
+</html>
